@@ -1,0 +1,23 @@
+[info]
+	aid
+	title
+	link
+Primary: aid(S)
+	
+[file]
+	fid
+	aid
+	type
+	url
+	content
+	width
+	height
+Primary: fid(S)
+GSI: partition=aid(S)
+	
+[label]
+	fid
+	label
+	rate
+Primary: fid(S)+label(S)
+GSI: partition=label(S), sort=rate(N)

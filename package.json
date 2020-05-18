@@ -1,0 +1,9 @@
+{
+    "dependencies": {
+        "request": "^2.88",
+        "request-promise": "^4.0",
+        "file-type": "^14.4",
+        "got": "^11.1",
+        "uuid": "^8.0"
+    }
+}
