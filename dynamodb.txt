@@ -21,3 +21,4 @@ GSI: partition=aid(S)
 	rate
 Primary: fid(S)+label(S)
 GSI: partition=label(S), sort=rate(N)
+GSI: partition=fid(S)

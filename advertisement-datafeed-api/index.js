@@ -1,13 +1,5 @@
-const AWS = require("aws-sdk");
-const s3 = new AWS.S3();
 const DynamoDB = require("aws-sdk/clients/dynamodb");
-const got = require('got');
-const request = require('request-promise');
-const fileType = require('file-type');
 const { v4: uuid } = require('uuid');
-
-// S3 bucket name
-var bucketName = "advertisement-files";
 
 // Load DynamoDB client
 const dynamodb = new DynamoDB.DocumentClient({
@@ -53,17 +45,8 @@ exports.handler = async (event, context, callback) => {
     var dynamoDbActions = [];
 
     // Detect create or update
-    var isUpdate = false;
-    var aid;
-    if (await isInfoExists(requestBody.id)) {
-        isUpdate = true;
-        aid = requestBody.id;
-    } else {
-        isUpdate = false;
-
-        // Generate new "aid"
-        aid = uuid();
-    }
+    const aid = requestBody.id;
+    const isUpdate = await isInfoExists(requestBody.id);
 
     // (Async) Add "info" to DynamoDB
     if (isUpdate) {
@@ -195,15 +178,12 @@ async function updateInfo(aid, title, link) {
         Key: {
             'aid': aid
         },
-        ConditionExpression: '#aid = :aid',
         UpdateExpression: 'set #title = :title, #link = :link',
         ExpressionAttributeNames: {
-            '#aid': 'aid',
             '#title': 'title',
             '#link': 'link',
         },
         ExpressionAttributeValues: {
-            ':aid': aid,
             ':title': title,
             ':link': link,
         },
@@ -240,9 +220,8 @@ async function addFileHtml(fid, aid, content, width, height) {
 }
 
 async function removeAllFilesByAid(aid) {
-    // Select what records will be remove...
-    var deleteFids = [];
-    const result = await dynamodb.query({
+    // Select what records will be remove from table "file"...
+    const fileRecords = await dynamodb.query({
         TableName: 'file',
         IndexName: 'aid-index',
         KeyConditionExpression: '#aid = :aid',
@@ -254,25 +233,63 @@ async function removeAllFilesByAid(aid) {
         }
     }).promise();
 
-    // Batch delete records...
-    var batchData = [];
-    for (var i in result.Items) {
-        if (typeof result.Items[i].fid === 'undefined' || result.Items[i].fid === null) {
+    // Batch delete records in table "file"...
+    var batchActionFile = [];
+    var batchActionLabel = [];
+    for (var i in fileRecords.Items) {
+        if (typeof fileRecords.Items[i].fid === 'undefined' || fileRecords.Items[i].fid === null) {
             continue;
         }
-        batchData.push({
+
+        // Prepare to remove record from table "file"...
+        batchActionFile.push({
             DeleteRequest: {
                 Key: {
-                    key: result.Items[i].fid
+                    fid: fileRecords.Items[i].fid
                 }
             }
         });
-    }
-    
-    return await dynamodb.batchWrite({
-        RequestItems: {
-            ['file']: batchData
+
+        // Select what records will be remove from table "label"...
+        var labelRecords = await dynamodb.query({
+            TableName: 'label',
+            IndexName: 'fid-index',
+            KeyConditionExpression: '#fid = :fid',
+            ExpressionAttributeNames: {
+                '#fid': 'fid',
+            },
+            ExpressionAttributeValues: {
+                ':fid': fileRecords.Items[i].fid,
+            }
+        }).promise();
+
+        for (var j in labelRecords.Items) {
+            if (typeof labelRecords.Items[j].fid === 'undefined' || typeof labelRecords.Items[j].label === 'undefined') {
+                continue;
+            }
+
+            // Prepare to remove record from table "label"...
+            batchActionLabel.push({
+                DeleteRequest: {
+                    Key: {
+                        fid: labelRecords.Items[j].fid,
+                        label: labelRecords.Items[j].label
+                    }
+                }
+            });
         }
+    }
+
+    var RequestItems = {};
+    if (batchActionFile.length > 0) {
+        RequestItems.file = batchActionFile;
+    }
+    if (batchActionLabel.length > 0) {
+        RequestItems.label = batchActionLabel;
+    }
+
+    return await dynamodb.batchWrite({
+        RequestItems
     }).promise();
 }
 
