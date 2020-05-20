@@ -22,3 +22,10 @@ GSI: partition=aid(S)
 Primary: fid(S)+label(S)
 GSI: partition=label(S), sort=rate(N)
 GSI: partition=fid(S)
+
+[related_word]
+	word
+	related
+	rate
+Primary: word(S)+related(S)
+GSI: partition=word(S), sort=rate(N)

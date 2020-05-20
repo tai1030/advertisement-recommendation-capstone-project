@@ -73,28 +73,42 @@ exports.handler = async (event, context) => {
             }
         }
 
-        console.log(labels);
-        var relatedLabels = {};
-        for (var i in labels) {
-            var relatedWords = await getRelatedWords(i);
-            for (var j in relatedWords) {
-                relatedLabels[relatedWords[j]] = labels[i];
-            }
+        // Get related words of each label
+        var batchApiActions = [];
+        const names = [];
+        for (var name in labels) {
+            names.push(name);
+            batchApiActions.push(getRelatedWords(name));
         }
+        const batchApiResults = await Promise.all(batchApiActions);
+        for (var i in batchApiResults) {
+            for (var relatedWord in batchApiResults[i]) {
+                // Confidence rate of label (AWS Rekognition) * Confidence rate of related word from API (e.g. 0.8 * 0.9 = 0.72)
+                const rate = labels[names[i]] * batchApiResults[i][relatedWord];
 
-        // Merge object with related labels
-        for (var i in relatedLabels) {
-            if (i in labels) {
-                labels[i] = Math.max(relatedLabels[i], labels[i]);
-            } else {
-                labels[i] = relatedLabels[i];
+                // Min. confidence rate
+                // if (rate <= 0.4) {
+                //    continue;
+                // }
+
+                // Merge into labels object (by related words)
+                if (relatedWord in labels) {
+                    labels[relatedWord] = Math.max(rate, labels[relatedWord]);
+                } else {
+                    labels[relatedWord] = rate;
+                }
             }
         }
 
         // Create label records into DynamoDB
         var dynamoDbActions = [];
-        for (var i in labels) {
-            dynamoDbActions.push(addLabel(data.fid, i, labels[i]));
+        for (var label in labels) {
+            console.info('Put label: ' + JSON.stringify({
+                fid: data.fid,
+                label,
+                rate: labels[label]
+            }));
+            dynamoDbActions.push(addLabel(data.fid, label, labels[label]));
         }
 
         // (Await) Wait all DynamoDB actions finished
@@ -139,7 +153,7 @@ function getImageUrlsFromHtmlCode(html) {
 }
 
 async function detectImage(s3ObjectKey) {
-    // Async detect labels and text on image by AWS Rekognition
+    // Detect labels and text on image by AWS Rekognition
     const [texts, labels] = await Promise.all([
         rekognition.detectText({
             Image: {
@@ -175,6 +189,9 @@ async function detectImage(s3ObjectKey) {
 
         // To lower case
         text['DetectedText'] = text['DetectedText'].toLowerCase();
+        if (shouldIgnoreLabel(text['DetectedText'])) {
+            continue;
+        }
 
         if (text['DetectedText'] in result) {
             result[text['DetectedText']] = Math.max(text['Confidence'], result[text['DetectedText']]);
@@ -189,6 +206,9 @@ async function detectImage(s3ObjectKey) {
 
         // To lower case
         label['Name'] = label['Name'].toLowerCase();
+        if (shouldIgnoreLabel(label['Name'])) {
+            continue;
+        }
 
         if (label['Name'] in result) {
             result[label['Name']] = Math.max(label['Confidence'], result[label['Name']]);
@@ -200,24 +220,98 @@ async function detectImage(s3ObjectKey) {
     return result;
 }
 
-// [TO-DO]
 async function getRelatedWords(word) {
-    /*
-    const apiResponse = await request({
-        method: 'POST',
-        url: 'https://twinword-word-associations-v1.p.rapidapi.com/associations/',
-        headers: {
-            'x-rapidapi-host': 'twinword-word-associations-v1.p.rapidapi.com',
-            'x-rapidapi-key': '73a5e4ece1mshb91defd88859d60p161349jsn646122d27639',
-            'content-type': 'application/x-www-form-urlencoded',
-            useQueryString: true
-        },
-        form: { entry: word }
-    });
-    console.log(apiResponse);
-    */
+    word = word.toLowerCase();
 
-    return [];
+    // Get from DynamoDB if the word existing
+    var relatedWords = await getDbRelatedWords(word);
+    if (!Array.isArray(relatedWords) || relatedWords.length === 0) {
+        // Call API to get the related words
+        var apiResponse = null;
+        try {
+            apiResponse = await request({
+                method: 'GET',
+                url: 'https://twinword-word-associations-v1.p.rapidapi.com/associations/',
+                qs: { entry: word },
+                headers: {
+                    'x-rapidapi-host': 'twinword-word-associations-v1.p.rapidapi.com',
+                    'x-rapidapi-key': '73a5e4ece1mshb91defd88859d60p161349jsn646122d27639',
+                    useQueryString: true
+                },
+                timeout: 5000
+            });
+        } catch (e) {
+            console.warn('Failed to call related words API [' + word + '] | Exception: ' + e);
+            return {};
+        }
+
+        if (apiResponse === null) {
+            console.warn('Failed to call related words API [' + word + '] | Result: null');
+            return {};
+        } else if (typeof apiResponse['result_code'] !== 'undefined') {
+            if (apiResponse['result_code'] == '200') { // Success
+                if (typeof apiResponse['associations_scored'] === 'undefined') {
+                    console.warn('Failed to call related words API [' + word + '] | (200 but missing "associations_scored") | Result: ' + apiResponse);
+                    return {};
+                } else {
+                    console.info('Successful to call related words API [' + word + '] | Result: ' + apiResponse);
+                    relatedWords = apiResponse['associations_scored'];
+                }
+            } else if (apiResponse['result_code'] == '462') { // Entry word not found
+                console.info('Successful to call related words API [' + word + '] | (No matched result) | Result: ' + apiResponse);
+                relatedWords = {'-': 0};
+            } else {
+                console.warn('Failed to call related words API [' + word + '] | (Unexpected status code) | Result: ' + apiResponse);
+                return {};
+            }
+        }
+
+        // (Async) Batch DynamoDB write actions (promise)
+        var dynamoDbActions = [];
+
+        // Write related words to DynamoDB from API result (reduce call API $$$$)
+        for (var relatedWord in relatedWords) {
+            dynamoDbActions.push(addRelatedWord(word, relatedWord.toLowerCase(), relatedWords[relatedWord]));
+        }
+
+        // (Await) Wait all DynamoDB actions finished
+        await Promise.all(dynamoDbActions);
+    }
+
+    return relatedWords;
+}
+
+async function getDbRelatedWords(word) {
+    var result = await dynamodb.query({
+        TableName: 'related_word',
+        IndexName: 'word-rate-index',
+        KeyConditionExpression: '#word = :word',
+        ExpressionAttributeNames: {
+            '#word': 'word'
+        },
+        ExpressionAttributeValues: {
+            ':word': word
+        }
+    }).promise();
+
+    const items = typeof result.Items !== 'undefined' && result.Items !== null ? result.Items : [];
+    var results = {};
+    for (var i in items) {
+        results[items[i].related] = items[i].rate;
+    }
+
+    return results;
+}
+
+async function addRelatedWord(word, related, rate) {
+    return await dynamodb.put({
+        TableName: 'related_word',
+        Item: {
+            'word': word,
+            'related': related,
+            'rate': rate
+        },
+    }).promise();
 }
 
 async function addLabel(fid, label, rate) {
@@ -229,4 +323,9 @@ async function addLabel(fid, label, rate) {
             'rate': rate
         },
     }).promise();
+}
+
+function shouldIgnoreLabel(label) {
+    const blacklist = ['alphabet', 'ampersand', 'any', 'click', 'demo', 'image', 'its', 'label', 'larger', 'logo', 'number', 'object', 'on', 'symbol', 'text', 'to', 'trademark', 'triangle', 'version', 'view', 'word'];
+    return blacklist.includes(label);
 }

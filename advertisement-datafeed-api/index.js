@@ -280,17 +280,36 @@ async function removeAllFilesByAid(aid) {
         }
     }
 
-    var RequestItems = {};
-    if (batchActionFile.length > 0) {
-        RequestItems.file = batchActionFile;
-    }
-    if (batchActionLabel.length > 0) {
-        RequestItems.label = batchActionLabel;
+    // (Async) Batch remove
+    var batchWriteActions = [];
+
+    while (batchActionFile.length > 0 || batchActionLabel.length > 0) {
+        var RequestItems = {};
+        var actionCount = 0;
+        RequestItems = {};
+
+        if (batchActionFile.length > 0 && actionCount < 25) {
+            RequestItems.file = [];
+            while (batchActionFile.length > 0 && actionCount < 25) {
+                RequestItems.file.push(batchActionFile.shift());
+                actionCount++;
+            }
+        }
+
+        if (batchActionLabel.length > 0 && actionCount < 25) {
+            RequestItems.label = [];
+            while (batchActionLabel.length > 0 && actionCount < 25) {
+                RequestItems.label.push(batchActionLabel.shift());
+                actionCount++;
+            }
+        }
+
+        batchWriteActions.push(dynamodb.batchWrite({
+            RequestItems
+        }).promise());
     }
 
-    return await dynamodb.batchWrite({
-        RequestItems
-    }).promise();
+    return await Promise.all(batchWriteActions);
 }
 
 function trustedCorsReferrer(referrer) {
