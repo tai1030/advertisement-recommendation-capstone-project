@@ -7,10 +7,10 @@ const request = require('request-promise');
 const fileType = require('file-type');
 
 // Rekognition detect text min. confidence
-var minConfidenceText = 40;
+var minConfidenceText = 60;
 
 // Rekognition detect label min. confidence
-var minConfidenceLabel = 40;
+var minConfidenceLabel = 60;
 
 // S3 bucket name
 var bucketName = "advertisement-files";
@@ -87,7 +87,7 @@ exports.handler = async (event, context) => {
                 const rate = labels[names[i]] * batchApiResults[i][relatedWord];
 
                 // Min. confidence rate
-                // if (rate <= 0.4) {
+                // if (rate <= 0.6) {
                 //    continue;
                 // }
 
