@@ -87,7 +87,7 @@ exports.handler = async (event, context, callback) => {
             statusCode: 200,
             body: JSON.stringify(jsonObject),
             headers: {
-                "Access-Control-Allow-Origin": trustedCorsReferrer(event.headers['Referer'] !== undefined ? event.headers['Referer'] : '')
+                "Access-Control-Allow-Origin": "*"
             }
         });
         return;
@@ -310,10 +310,4 @@ async function removeAllFilesByAid(aid) {
     }
 
     return await Promise.all(batchWriteActions);
-}
-
-function trustedCorsReferrer(referrer) {
-    if (referrer.startsWith('http://localhost/')) {
-        return 'http://localhost';
-    }
 }

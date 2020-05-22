@@ -9,14 +9,34 @@ $(document).ready(function () {
      *  - content [optional] | Input current page content for search the more related advertisements
      */
     const queryString = getAllParameters();
+    var requestData = {};
+    if (typeof queryString.cid !== 'undefined') {
+        requestData.cid = queryString.cid;
+    }
+    if (typeof queryString.platform !== 'undefined') {
+        requestData.platform = queryString.platform;
+    } else {
+        requestData.platform = 'web';
+    }
+    if (typeof queryString.width !== 'undefined') {
+        requestData.width = queryString.width;
+    }
+    if (typeof queryString.height !== 'undefined') {
+        requestData.height = queryString.height;
+    }
+    if (typeof queryString.content !== 'undefined') {
+        requestData.content = queryString.content;
+    }
 
     // Call API to get the advertisement data
     $.ajax({
         type: 'POST',
         url: 'https://1abw3c097g.execute-api.us-east-2.amazonaws.com/presenter',
-        data: queryString,
-        dataType: 'json',
-        success: function (advertisements) {
+        data: JSON.stringify(requestData),
+        processData: false,
+        contentType: 'application/json',
+        success: function (ads) {
+            ads = JSON.parse(ads);
             /**
              * Return list of advertisements
              *  - title | Title of advertisement
@@ -27,9 +47,31 @@ $(document).ready(function () {
              *  - width | Width of advertisement
              *  - height | Height of advertisement
              */
-            $('#canvas').html(JSON.stringify(advertisements, null, 2)); // debug
+            var html = '';
+            for (var i in ads) {
+                const ad = ads[i];
+                html += '<div data-aid="' + ad.aid + '" data-fid="' + ad.fid + '">';
+                if (ad.type === 'image') {
+                    const image = '<img src="' + ad.url + '" border="0" alt="' + ad.title + '" title="' + ad.title + '" />';
+                    if (ad.link !== null && ad.link !== '') {
+                        html += '<a href="' + ad.link + '" target="_blank">' + image + '</a>';
+                    } else {
+                        html += image;
+                    }
+                } else if (ad.type === 'html') {
+                    html += ad.content;
+                }
+                html += '</div>';
+            }
+            $('#canvas').html(html);
+            $('#canvas').width(typeof queryString.width !== 'undefined' ? queryString.width : '100%');
+            $('#canvas').height(typeof queryString.height !== 'undefined' ? queryString.height : '100%');
+            $('#canvas').slick({
+                autoplay: true,
+                autoplaySpeed: 5000,
+            });
         },
-      });
+    });
 });
 
 function getAllParameters() {
