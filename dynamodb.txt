@@ -29,3 +29,11 @@ GSI: partition=fid(S)
 	rate
 Primary: word(S)+related(S)
 GSI: partition=word(S), sort=rate(N)
+
+[tracking]
+	fid
+	cid
+	display
+	click
+	dislike
+Primary: fid(S)+cid(S)

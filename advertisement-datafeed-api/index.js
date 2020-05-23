@@ -10,75 +10,97 @@ exports.handler = async (event, context, callback) => {
     /*
         Example request JSON format
           - "title" and "link" accept empty string or null, all other attriables are required.
-        {
-            "id": "AD-1000001",
-            "title": "CCBBstore Mega sales! Up to 88% off!",
-            "link": "https://www.ccbbstore.com",
-            "files": [
-                {
-                    "type": "image",
-                    "url": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
-                    "width": 272,
-                    "height": 92
-                },
-                {
-                    "type": "html",
-                    "content": "<img src=\"https://www.tutorialrepublic.com/examples/images/objects.png\" usemap=\"#objects\" alt=\"Objects\"><map name=\"objects\"><area shape=\"circle\" coords=\"137,231,71\" href=\"https://google.com\" alt=\"Clock\"><area shape=\"poly\" coords=\"363,146,273,302,452,300\" href=\"https://yahoo.com\" alt=\"Sign\"><area shape=\"rect\" coords=\"520,160,641,302\" href=\"https://ztore.com\" alt=\"Book\"></map>",
-                    "width": 700,
-                    "height": 400
-                }
-            ]
-        }
+        [
+            {
+                "id": "AD-1000001",
+                "title": "CCBBstore Mega sales! Up to 88% off!",
+                "link": "https://www.ccbbstore.com",
+                "files": [
+                    {
+                        "type": "image",
+                        "url": "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+                        "width": 272,
+                        "height": 92
+                    },
+                    {
+                        "type": "html",
+                        "content": "<img src=\"https://www.tutorialrepublic.com/examples/images/objects.png\" usemap=\"#objects\" alt=\"Objects\"><map name=\"objects\"><area shape=\"circle\" coords=\"137,231,71\" href=\"https://google.com\" alt=\"Clock\"><area shape=\"poly\" coords=\"363,146,273,302,452,300\" href=\"https://yahoo.com\" alt=\"Sign\"><area shape=\"rect\" coords=\"520,160,641,302\" href=\"https://ztore.com\" alt=\"Book\"></map>",
+                        "width": 700,
+                        "height": 400
+                    }
+                ]
+            }
+        ]
     */
-    const requestBody = JSON.parse(event.body);
-    console.log(requestBody);
+    var requestBodys = JSON.parse(event.body);
+    console.log(requestBodys);
+
+    // Convert to array if request body is not array (For batch import)
+    if (!Array.isArray(requestBodys)) {
+        requestBodys = [requestBodys];
+    }
 
     // Check request body format
-    if (!validateRequestBody(requestBody)) {
+    if (!validateRequestBody(requestBodys)) {
         return sendResponse({
             "status": false,
             "message": "Invalid request"
         });
     }
 
-    // Batch DynamoDB write actions (promise)
-    var dynamoDbActions = [];
-
-    // Detect create or update
-    const aid = requestBody.id;
-    const isUpdate = await isInfoExists(requestBody.id);
-
-    // (Async) Add "info" to DynamoDB
-    if (isUpdate) {
-        await removeAllFilesByAid(aid);
-        dynamoDbActions.push(updateInfo(aid, requestBody.title, requestBody.link));
-    } else {
-        dynamoDbActions.push(addInfo(aid, requestBody.title, requestBody.link));
+    var resultCount = {
+        added: 0,
+        updated: 0
     }
 
-    // Download file(s) from URL and upload to S3 bucket
-    for (var i in requestBody.files) {
-        // Generate new "fid"
-        var fid = uuid();
+    for (var index in requestBodys) {
+        const requestBody = requestBodys[index];
 
-        // (Async) Add "file" to DynamoDB
-        switch (requestBody.files[i].type) {
-            case 'image':
-                dynamoDbActions.push(addFileImage(fid, aid, requestBody.files[i].url, requestBody.files[i].width, requestBody.files[i].height));
-                break;
-            case 'html':
-                dynamoDbActions.push(addFileHtml(fid, aid, requestBody.files[i].content, requestBody.files[i].width, requestBody.files[i].height));
-                break;
+        // Batch DynamoDB write actions (promise)
+        var dynamoDbActions = [];
+
+        // Detect create or update
+        const aid = requestBody.id;
+        const isUpdate = await isInfoExists(requestBody.id);
+
+        // (Async) Add "info" to DynamoDB
+        if (isUpdate) {
+            await removeAllFilesByAid(aid);
+            dynamoDbActions.push(updateInfo(aid, requestBody.title, requestBody.link));
+        } else {
+            dynamoDbActions.push(addInfo(aid, requestBody.title, requestBody.link));
+        }
+
+        // Download file(s) from URL and upload to S3 bucket
+        for (var i in requestBody.files) {
+            // Generate new "fid"
+            var fid = uuid();
+
+            // (Async) Add "file" to DynamoDB
+            switch (requestBody.files[i].type) {
+                case 'image':
+                    dynamoDbActions.push(addFileImage(fid, aid, requestBody.files[i].url, requestBody.files[i].width, requestBody.files[i].height));
+                    break;
+                case 'html':
+                    dynamoDbActions.push(addFileHtml(fid, aid, requestBody.files[i].content, requestBody.files[i].width, requestBody.files[i].height));
+                    break;
+            }
+        }
+
+        // (Await) Wait all DynamoDB actions finished
+        await Promise.all(dynamoDbActions);
+
+        if (isUpdate) {
+            resultCount.updated++;
+        } else {
+            resultCount.added++;
         }
     }
-
-    // (Await) Wait all DynamoDB actions finished
-    await Promise.all(dynamoDbActions);
 
     // API response
     return sendResponse({
         "status": true,
-        "message": isUpdate ? "Updated 1 advertisement successfully" : "Added 1 advertisement successfully"
+        "message": "Successfully to add " + resultCount.added + ", update " + resultCount.updated + " advertisement",
     });
 
     function sendResponse(jsonObject) {
@@ -94,52 +116,56 @@ exports.handler = async (event, context, callback) => {
     }
 };
 
-function validateRequestBody(requestBody) {
-    if (typeof requestBody === 'undefined') {
+function validateRequestBody(requestBodys) {
+    if (typeof requestBodys === 'undefined' || !Array.isArray(requestBodys)) {
         console.warn('API request validatation failed | Check: requestBody=undefined');
         return false;
     }
 
-    // Check rules for base object
-    const rules = [
-        typeof requestBody.id === 'string' && requestBody.id !== '',
-        (typeof requestBody.title === 'string' || (typeof requestBody.title !== 'undefined' && requestBody.title === null)),
-        (typeof requestBody.link === 'string' || (typeof requestBody.link !== 'undefined' && requestBody.link === null)),
-        typeof requestBody.files === 'object' && Array.isArray(requestBody.files) && requestBody.files.length >= 1,
-    ];
-    if (!rules.every(Boolean)) {
-        console.warn('API request validatation failed (base object) | Check: ' + JSON.stringify(rules));
-        return false;
-    }
+    for (var index in requestBodys) {
+        const requestBody = requestBodys[index];
 
-    // Check rules for each object in "files" array
-    for (var i in requestBody.files) {
-        // Check rules for "type"
-        var fileRules = [
-            typeof requestBody.files[i].type === 'string',
-            ['image', 'html'].includes(requestBody.files[i].type)
+        // Check rules for base object
+        const rules = [
+            typeof requestBody.id === 'string' && requestBody.id !== '',
+            (typeof requestBody.title === 'string' || (typeof requestBody.title !== 'undefined' && requestBody.title === null)),
+            (typeof requestBody.link === 'string' || (typeof requestBody.link !== 'undefined' && requestBody.link === null)),
+            typeof requestBody.files === 'object' && Array.isArray(requestBody.files) && requestBody.files.length >= 1,
         ];
-        if (!fileRules.every(Boolean)) {
-            console.warn('API request validatation failed (file object) | Check: ' + JSON.stringify(fileRules));
+        if (!rules.every(Boolean)) {
+            console.warn('API request validatation failed (base object) | Check: ' + JSON.stringify(rules));
             return false;
         }
 
-        // Check rules for other fields
-        fileRules = [
-            typeof requestBody.files[i].width === 'number' && requestBody.files[i].width > 0,
-            typeof requestBody.files[i].height === 'number' && requestBody.files[i].height > 0,
-        ];
-        switch (requestBody.files[i].type) {
-            case 'image':
-                fileRules.push(typeof requestBody.files[i].url === 'string' && requestBody.files[i].url !== '');
-                break;
-            case 'html':
-                fileRules.push(typeof requestBody.files[i].content === 'string' && requestBody.files[i].content !== '');
-                break;
-        }
-        if (!fileRules.every(Boolean)) {
-            console.warn('API request validatation failed (other fields) | Check: ' + JSON.stringify(fileRules));
-            return false;
+        // Check rules for each object in "files" array
+        for (var i in requestBody.files) {
+            // Check rules for "type"
+            var fileRules = [
+                typeof requestBody.files[i].type === 'string',
+                ['image', 'html'].includes(requestBody.files[i].type)
+            ];
+            if (!fileRules.every(Boolean)) {
+                console.warn('API request validatation failed (file object) | Check: ' + JSON.stringify(fileRules));
+                return false;
+            }
+
+            // Check rules for other fields
+            fileRules = [
+                typeof requestBody.files[i].width === 'number' && requestBody.files[i].width > 0,
+                typeof requestBody.files[i].height === 'number' && requestBody.files[i].height > 0,
+            ];
+            switch (requestBody.files[i].type) {
+                case 'image':
+                    fileRules.push(typeof requestBody.files[i].url === 'string' && requestBody.files[i].url !== '');
+                    break;
+                case 'html':
+                    fileRules.push(typeof requestBody.files[i].content === 'string' && requestBody.files[i].content !== '');
+                    break;
+            }
+            if (!fileRules.every(Boolean)) {
+                console.warn('API request validatation failed (other fields) | Check: ' + JSON.stringify(fileRules));
+                return false;
+            }
         }
     }
 

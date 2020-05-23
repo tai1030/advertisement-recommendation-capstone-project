@@ -8,6 +8,35 @@ body {
 }
 
 #canvas img {
-    max-width: 100%;
-    max-height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.like-container {
+  position: absolute;
+  width: 100%;
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
+.like-container svg {
+  width: 30px;
+  height: 30px;
+  vertical-align: top;
+  background-color: #EFEFEF;
+}
+
+.track-display {
+  display: none;
+  visibility: hidden;
+}
+
+.disliked {
+  display: none;
+  line-height: 30px;
+  margin-left: 10px;
+  padding: 3px;
+  background-color: #EEEEFF;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 10px;
 }

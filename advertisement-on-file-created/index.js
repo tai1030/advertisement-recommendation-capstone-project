@@ -7,10 +7,10 @@ const request = require('request-promise');
 const fileType = require('file-type');
 
 // Rekognition detect text min. confidence
-var minConfidenceText = 60;
+var minConfidenceText = 70;
 
 // Rekognition detect label min. confidence
-var minConfidenceLabel = 60;
+var minConfidenceLabel = 70;
 
 // S3 bucket name
 var bucketName = "advertisement-files";
@@ -34,16 +34,20 @@ exports.handler = async (event, context) => {
         var imageUrls = [];
 
         // For "html", scan HTML code to get all image URLs
+        var html = '';
         switch (data.type) {
             case 'image':
                 imageUrls.push(data.url);
                 break;
             case 'html':
-                imageUrls = imageUrls.concat(getImageUrlsFromHtmlCode(data.content.replace(/\\/g, '')));
+                html = data.content.replace(/\\/g, '');
+                imageUrls = imageUrls.concat(getImageUrlsFromHtmlCode(html));
                 break;
         }
 
         console.log('imageUrls: ', JSON.stringify(imageUrls, null, 2));
+
+        var dynamoDbActions = [];
 
         // Download file from URL, and upload to S3 bucket
         var labels = {};
@@ -60,8 +64,29 @@ exports.handler = async (event, context) => {
                 continue;
             }
 
+            if (typeof uploadResult.Location === 'undefined' || uploadResult.Location === null || uploadResult.Location === '') {
+                console.error('Failed to upload [' + imageUrls[i] + '] to S3. (No Location response) | Response: ' + JSON.stringify(uploadResult));
+                continue;
+            }
+
+            // Update "file" table to replace image URL to our own S3 URL from source URL
+            switch (data.type) {
+                case 'image':
+                    dynamoDbActions.push(updateFileUrl(data.fid, uploadResult.Location));
+                    break;
+                case 'html':
+                    html = html.split(imageUrls[i]).join(uploadResult.Location); // Replace source URL to S3 URL
+                    break;
+            }
+
             // Detect labels and text on image by AWS Rekognition
             var imageLabels = await detectImage(uploadResult.key);
+            console.debug('Detected label: ' + uploadResult.key + ' | ' + JSON.stringify(imageLabels));
+        }
+
+        // Update "file" table to replace image URL to our own S3 URL from source URL (Replace HTML code)
+        if (data.type === 'html') {
+            dynamoDbActions.push(updateFileContent(data.fid, html));
         }
 
         // Merge object across images
@@ -87,7 +112,7 @@ exports.handler = async (event, context) => {
                 const rate = labels[names[i]] * batchApiResults[i][relatedWord];
 
                 // Min. confidence rate
-                // if (rate <= 0.6) {
+                // if (rate <= 0.7) {
                 //    continue;
                 // }
 
@@ -101,7 +126,6 @@ exports.handler = async (event, context) => {
         }
 
         // Create label records into DynamoDB
-        var dynamoDbActions = [];
         for (var label in labels) {
             console.info('Put label: ' + JSON.stringify({
                 fid: data.fid,
@@ -188,7 +212,7 @@ async function detectImage(s3ObjectKey) {
         }
 
         // To lower case
-        text['DetectedText'] = text['DetectedText'].toLowerCase();
+        text['DetectedText'] = text['DetectedText'].replace(/[^a-zA-Z ]/g, "").toLowerCase();
         if (shouldIgnoreLabel(text['DetectedText'])) {
             continue;
         }
@@ -205,7 +229,7 @@ async function detectImage(s3ObjectKey) {
         var label = labels['Labels'][i];
 
         // To lower case
-        label['Name'] = label['Name'].toLowerCase();
+        label['Name'] = label['Name'].replace(/[^a-zA-Z ]/g, "").toLowerCase();
         if (shouldIgnoreLabel(label['Name'])) {
             continue;
         }
@@ -238,7 +262,8 @@ async function getRelatedWords(word) {
                     'x-rapidapi-key': '73a5e4ece1mshb91defd88859d60p161349jsn646122d27639',
                     useQueryString: true
                 },
-                timeout: 5000
+                // timeout: 5000,
+                timeout: 1,
             });
         } catch (e) {
             console.warn('Failed to call related words API [' + word + '] | Exception: ' + e);
@@ -325,7 +350,41 @@ async function addLabel(fid, label, rate) {
     }).promise();
 }
 
+async function updateFileUrl(fid, url) {
+    return await dynamodb.update({
+        TableName: 'file',
+        Key: {
+            'fid': fid
+        },
+        UpdateExpression: 'set #url = :url',
+        ExpressionAttributeNames: {
+            '#url': 'url',
+        },
+        ExpressionAttributeValues: {
+            ':url': url,
+        },
+        ReturnValues: "ALL_NEW"
+    }).promise();
+}
+
+async function updateFileContent(fid, content) {
+    return await dynamodb.update({
+        TableName: 'file',
+        Key: {
+            'fid': fid
+        },
+        UpdateExpression: 'set #content = :content',
+        ExpressionAttributeNames: {
+            '#content': 'content',
+        },
+        ExpressionAttributeValues: {
+            ':content': content,
+        },
+        ReturnValues: "ALL_NEW"
+    }).promise();
+}
+
 function shouldIgnoreLabel(label) {
-    const blacklist = ['alphabet', 'ampersand', 'any', 'click', 'demo', 'image', 'its', 'label', 'larger', 'logo', 'number', 'object', 'on', 'symbol', 'text', 'to', 'trademark', 'triangle', 'version', 'view', 'word'];
+    const blacklist = ['', 'is', 'are', 'am', 'i', 'he', 'she', 'it', 'we', 'them', 'they', 'him', 'his', 'her', 'us', 'and', 'or', 'but', 'the', 'of', 'which', 'by', 'a', 'an', 'what', 'why', 'which', 'when', 'how', 'to', 'about', 'yes', 'no', 'not', 'yes', 'yet', 'have', 'has', 'had', 'be', 'been', 'as', 'too', 'many', 'much', 'before', 'after', 'by', 'more', 'less', 'the', 'that', 'alphabet', 'ampersand', 'any', 'click', 'demo', 'image', 'its', 'label', 'larger', 'logo', 'number', 'object', 'on', 'symbol', 'text', 'to', 'trademark', 'triangle', 'version', 'view', 'word'];
     return blacklist.includes(label);
 }

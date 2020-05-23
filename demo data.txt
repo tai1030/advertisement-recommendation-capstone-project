@@ -1,0 +1,262 @@
+[
+	{
+		"id": "AD-1000001",
+		"title": "MP du luxe | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=mp+du+luxe",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://mpdeluxe.mingpao.com/m/wp-content/uploads/2020/04/106-1.jpg",
+				"width": 999,
+				"height": 667
+			}
+		]
+	},
+	{
+		"id": "AD-1000002",
+		"title": "MP du luxe | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=mp+du+luxe",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://mpdeluxe.mingpao.com/m/wp-content/uploads/2020/05/309.jpg",
+				"width": 800,
+				"height": 534
+			}
+		]
+	},
+	{
+		"id": "AD-1000003",
+		"title": "Jaguar | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=jaguar",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://cdn-jaguarlandrover.com/api/v1/image/14306/w/680.jpg",
+				"width": 680,
+				"height": 450
+			}
+		]
+	},
+	{
+		"id": "AD-1000004",
+		"title": "Carplus | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=carplus",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://s3-ap-southeast-1.amazonaws.com/jmenplus-prod-resources/wp-content/uploads/2020/05/16155157/26A1726NAIL.jpg",
+				"width": 1322,
+				"height": 771
+			}
+		]
+	},
+	{
+		"id": "AD-1000005",
+		"title": "Times Car Rental | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=times+car+rental",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://www.timescar-rental.com/images/top/top_ph002.png",
+				"width": 690,
+				"height": 544
+			}
+		]
+	},
+	{
+		"id": "AD-1000006",
+		"title": "INFINITI Hong Kong | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=infiniti+hong+kong",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://www-asia.infiniti-cdn.net/content/dam/Infiniti/2019/FAQ/infiniti-awd_spring_mosaic_01-3200x1800.jpg",
+				"width": 3200,
+				"height": 1800
+			}
+		]
+	},
+	{
+		"id": "AD-1000007",
+		"title": "MP de luxe | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=mp+de+luxe",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://mpdeluxe.mingpao.com/m/wp-content/uploads/2020/04/H62.jpg",
+				"width": 800,
+				"height": 455
+			}
+		]
+	},
+	{
+		"id": "AD-1000008",
+		"title": "Black Series | ABCD Car sales promotion! 80% off",
+		"link": "https://www.google.com/search?q=black+series",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://scontent.fhkg3-2.fna.fbcdn.net/v/t1.0-9/72624702_2814200661966258_3684317156616437760_o.jpg?_nc_cat=102&_nc_sid=6e5ad9&_nc_oc=AQmgyM9Qa98y1pITRLuLCPFhbw3hDTNc3U2O_Xa3frjvN3tB03sTa0RdWFU4H0i3bvE&_nc_ht=scontent.fhkg3-2.fna&oh=597eb74fcfc475c1c2edcabc40498619&oe=5EEC3F5D",
+				"width": 960,
+				"height": 368
+			}
+		]
+	},
+	{
+		"id": "AD-1000009",
+		"title": "PEDIGREE | Adult Dog Food",
+		"link": "https://www.google.com/search?q=pedigree+adult+dog+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://www.pedigree.com/images/default-source/products/dry/pedigree-dry-dog-food-adult-roasted-chicken-rice-vegetable-flavor-front.tmb-.jpg?sfvrsn=273c6349_0",
+				"width": 300,
+				"height": 400
+			}
+		]
+	},
+	{
+		"id": "AD-1000010",
+		"title": "Purina Dog Chow | Adult Dog Food",
+		"link": "https://www.google.com/search?q=purina+dog+chow+adult+dog+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://i5.walmartimages.com/asr/ee3c5516-cac6-4b29-8153-25a00cb079f7_3.63248fe1d9f2c244550b60df577c6841.png",
+				"width": 2400,
+				"height": 2400
+			}
+		]
+	},
+	{
+		"id": "AD-1000011",
+		"title": "Baby Blue | Puppy Food",
+		"link": "https://www.google.com/search?q=baby+blue+puppy+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://assets.petco.com/petco/image/upload/f_auto,q_auto/3096247-center-1",
+				"width": 2000,
+				"height": 2000
+			}
+		]
+	},
+	{
+		"id": "AD-1000012",
+		"title": "Beneful Originals Dry Dog Food with Beef",
+		"link": "https://www.google.com/search?q=purina+bemeful+originals",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://www.purina.com/sites/g/files/auxxlc196/files/styles/kraken_product_carousel_regular/public/OGBF_Dry_800x1000.png?itok=3kIoMAVx",
+				"width": 380,
+				"height": 475
+			}
+		]
+	},
+	{
+		"id": "AD-1000013",
+		"title": "Pedigree Small Breed Adult Dry Dog Food, Chicken & Steak",
+		"link": "https://www.google.com/search?q=pedigree+small+breed+adult+dry+dog+food+chicken+steak",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://images-na.ssl-images-amazon.com/images/I/81irqPrWW1L._AC_SL1500_.jpg",
+				"width": 911,
+				"height": 1500
+			}
+		]
+	},
+	{
+		"id": "AD-1000014",
+		"title": "Retriever Puppy Blend Dog Food",
+		"link": "https://www.google.com/search?q=retriever+puppy+blend",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://media.tractorsupply.com/is/image/TractorSupplyCompany/2800016?$456$",
+				"width": 456,
+				"height": 456
+			}
+		]
+	},
+	{
+		"id": "AD-1000015",
+		"title": "Pedigree Puppy food | Chicken with rice",
+		"link": "https://www.google.com/search?q=pedigree+puppy+food+chicken+with+rice",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://www.thewarehouse.co.nz/dw/image/v2/AAWO_PRD/on/demandware.static/-/Sites-twl-master-catalog/default/dw9dec2300/3e/74/R862148_40.jpg?sw=484&sh=484&sm=fit",
+				"width": 484,
+				"height": 484
+			}
+		]
+	},
+	{
+		"id": "AD-1000016",
+		"title": "Meow Mix original choice Dry Cat Food 6.3-lb bag",
+		"link": "https://www.google.com/search?q=meow+mix+original+choice+dry+cat+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://img.chewy.com/is/catalog/99965_MAIN._AC_SL1500_V1462999356_.jpg",
+				"width": 761,
+				"height": 1248
+			}
+		]
+	},
+	{
+		"id": "AD-1000017",
+		"title": "9Lives Indoor Complete Cat Food, 20-Pound Bag",
+		"link": "https://www.google.com/search?q=9lives+indoor+complete+cat+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://i5.walmartimages.com/asr/a67b8b29-e672-4b45-a21a-d27ab6891ced_1.dbc4b6e34037c76d9e07b303f185bde6.jpeg",
+				"width": 2400,
+				"height": 2400
+			}
+		]
+	},
+	{
+		"id": "AD-1000018",
+		"title": "WHISKAS Indoor CAT with Chicken Adult Dry CAT Food",
+		"link": "https://www.google.com/search?q=whiskas+indoor+cat",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://i5.walmartimages.ca/images/Enlarge/683/996/6000197683996.jpg",
+				"width": 1500,
+				"height": 1500
+			}
+		]
+	},
+	{
+		"id": "AD-1000019",
+		"title": "Canned Cat Food",
+		"link": "https://www.google.com/search?q=canned+cat+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://animalaid.org.au/wp-content/uploads/2019/02/NPW_32679_pic1_B299_9-500x500.jpg",
+				"width": 500,
+				"height": 500
+			}
+		]
+	},
+	{
+		"id": "AD-1000020",
+		"title": "Tesco Adult Dry Cat Food with Chicken 3KG",
+		"link": "https://www.google.com/search?q=Tesco+adult+dry+cat+food",
+		"files": [
+			{
+				"type": "image",
+				"url": "https://digitalcontent.api.tesco.com/v2/media/ghs/1c6d9a82-2a71-4b96-b60d-29cb7ace78d5/snapshotimagehandler_1075538481.jpeg?h=540&w=540",
+				"width": 540,
+				"height": 540
+			}
+		]
+	}
+]

@@ -6,7 +6,7 @@ const dynamodb = new DynamoDB.DocumentClient({
 });
 
 // Label min. confidence
-var minConfidenceLabel = 60;
+var minConfidenceLabel = 70;
 
 exports.handler = async (event, context, callback) => {
     /*
@@ -83,7 +83,7 @@ function validateRequestBody(requestBody) {
 
 function parseContent(content) {
     const ignoreList = [
-        '', 'is', 'are', 'am', 'i', 'he', 'she', 'it', 'we', 'them', 'they', 'him', 'his', 'her', 'us', 'and', 'or', 'but', 'the', 'of', 'which', 'by', 'a', 'an', 'what', 'why', 'which', 'when', 'how', 'to', 'about', 'yes', 'no', 'not', 'yes', 'yet', 'have', 'has', 'had', 'be', 'been', 'as', 'too', 'many', 'much', 'before', 'after', 'by', 'more', 'less', 'the', 'that'
+        '', 'is', 'are', 'am', 'i', 'he', 'she', 'it', 'we', 'them', 'they', 'him', 'his', 'her', 'us', 'and', 'or', 'but', 'the', 'of', 'which', 'by', 'a', 'an', 'what', 'why', 'which', 'when', 'how', 'to', 'about', 'yes', 'no', 'not', 'yes', 'yet', 'have', 'has', 'had', 'be', 'been', 'as', 'too', 'many', 'much', 'before', 'after', 'by', 'more', 'less', 'the', 'that', 'alphabet', 'ampersand', 'any', 'click', 'demo', 'image', 'its', 'label', 'larger', 'logo', 'number', 'object', 'on', 'symbol', 'text', 'to', 'trademark', 'triangle', 'version', 'view', 'word'
     ];
     var resultKeywords = [];
     const keywords = content.replace(/[^a-zA-Z ]/g, "").toLowerCase().split(' ');
@@ -173,7 +173,7 @@ async function getAdsListByLabels(keywords) {
     // Get aids by files
     const aids = [];
     for (var i in files) {
-        if (typeof files[i].aid !== undefined) {
+        if (typeof files[i].aid !== 'undefined' && files[i].aid !== null && files[i].aid !== '') {
             aids.push(files[i].aid);
         }
     }
