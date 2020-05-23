@@ -92,13 +92,13 @@ $(document).ready(function () {
             for (var i in ads) {
                 const ad = ads[i];
 
-                var trackDislikeUrl = 'https://1abw3c097g.execute-api.us-east-2.amazonaws.com/track-dislike?fid=' + ad.fid;
-                if (typeof queryString.cid !== 'undefined') {
-                    trackDislikeUrl += '&cid=' + queryString.cid;
-                }
-
                 $('#like-container-fid-' + ad.fid + ' .dislike-button').click(function(event) {
                     event.preventDefault();
+
+                    var trackDislikeUrl = 'https://1abw3c097g.execute-api.us-east-2.amazonaws.com/track-dislike?fid=' + ad.fid;
+                    if (typeof queryString.cid !== 'undefined') {
+                        trackDislikeUrl += '&cid=' + queryString.cid;
+                    }
 
                     $.ajax({
                         method: 'GET',

@@ -36,14 +36,17 @@ exports.handler = async (event, context, callback) => {
         keywords = parseContent(requestBody.content);
     }
 
+    // Get "cid"
+    const cid = typeof requestBody.cid !== 'undefined' && requestBody.cid !== null && requestBody.cid !== '' ? cid : null;
+
     // Get ads by label
     var ads = [];
     if (keywords.length > 0) {
         // Get file+info filtered by label
-        ads = await getAdsListByLabels(keywords);
+        ads = await getAdsListByLabels(keywords, cid);
     } else {
         // Get all file+info
-        ads = await getAdsList();
+        ads = await getAdsList(cid);
     }
     
     // API response
@@ -96,11 +99,11 @@ function parseContent(content) {
     return resultKeywords;
 }
 
-async function getAdsList() {
-    return await getAdsListByLabels([]);
+async function getAdsList(cid) {
+    return await getAdsListByLabels([], cid);
 }
 
-async function getAdsListByLabels(keywords) {
+async function getAdsListByLabels(keywords, cid) {
     var fids = [];
     var batchQueryActions = [];
 
@@ -116,6 +119,18 @@ async function getAdsListByLabels(keywords) {
             const items = typeof result.Items !== 'undefined' && result.Items !== null ? result.Items : [];
             var results = {};
             for (var i in items) {
+                // Check tracking stats by "fid"
+                const {clickRate, dislikeRate} = await getClickDislikeRate(items[i].fid, cid);
+
+                // Hide Ads if dislike-rate >= 20%
+                if (dislikeRate >= 0.2) {
+                    continue;
+                }
+
+                // Adjust Ads rate (score) by click-rate and dislike-rate
+                items[i].rate = getAdjustedRate(items[i].rate, clickRate, dislikeRate);
+
+                // Push label object to "results" array
                 if (items[i].fid in results) {
                     // If existing, just put if the rate is higher
                     if (items[i].rate > results[items[i].fid]) {
@@ -166,6 +181,29 @@ async function getAdsListByLabels(keywords) {
             TableName: 'file'
         }).promise();
         files = result.Items !== undefined ? result.Items : [];
+
+        // Adjust Ads display sequence by click-rate and dislike-rate
+        var removeFileIndexs = [];
+        for (var i in files) {
+            // Check tracking stats by "fid"
+            const {clickRate, dislikeRate} = await getClickDislikeRate(files[i].fid, cid);
+
+            // Hide Ads if dislike-rate >= 20%
+            if (dislikeRate >= 0.2) {
+                removeFileIndexs.push(i);
+            }
+
+            // Get Ads rate (score) by click-rate and dislike-rate
+            files[i].rate = getAdjustedRate(0, clickRate, dislikeRate);
+        }
+
+        // Remove Ads which is dislike-rate >= 20% from "files" array
+        files.splice(removeFileIndexs, 1);
+
+        // Sort by rate DESC
+        files.sort(function(a, b) {
+            return b.rate - a.rate;
+        });
     }
     console.debug('files=' + JSON.stringify(files, null, 2));
     
@@ -246,4 +284,67 @@ async function getInfo(aid) {
             ':aid': aid
         }
     }).promise();
+}
+
+async function getTrack(fid, cid) {
+    const result = await dynamodb.query({
+        TableName: 'tracking',
+        KeyConditionExpression: '#fid = :fid AND #cid = :cid',
+        ExpressionAttributeNames: {
+            '#fid': 'fid',
+            '#cid': 'cid'
+        },
+        ExpressionAttributeValues: {
+            ':fid': fid,
+            ':cid': cid
+        }
+    }).promise();
+    const items = typeof result.Items !== 'undefined' && result.Items !== null ? result.Items : [];
+
+    var track = (items.length > 0) ? items[0] : {
+        fid,
+        cid,
+        display: 0,
+        click: 0,
+        dislike: 0
+    };
+
+    track.display = typeof track.display === 'undefined' ? 0 : track.display;
+    track.click = typeof track.click === 'undefined' ? 0 : track.click;
+    track.dislike = typeof track.dislike === 'undefined' ? 0 : track.dislike;
+
+    return track;
+}
+
+async function getClickDislikeRate(fid, cid) {
+    cid = cid === null ? "GUEST" : cid;
+    const track = await getTrack(fid, cid);
+
+    // Calculate click-rate and dislike-rate
+    var clickRate = 0;
+    var dislikeRate = 0;
+    if (track.display > 0) {
+        clickRate = track.click / track.display;
+        dislikeRate = track.dislike / track.display;
+    }
+
+    return {clickRate, dislikeRate};
+}
+
+/**
+ * Adjust Ads rate (score) by click-rate and dislike-rate
+ * For example...
+ * Base rate is 75% (From confidence% of AWS Rekognition and Related words API)
+ * Display=1,000,000
+ * Click=100,000 (Click-rate = 10000/1000000 = 1%)
+ * Dislike=300,000 (Click-rate = 30000/1000000 = 3%)
+ * Final rate is = 75% + (1% * 10) - (3% * 10)
+ *               = 75% + 10% - 30%
+ *               = 55%
+ */
+function getAdjustedRate(baseRate, clickRate, dislikeRate) {
+    baseRate += clickRate * 10;
+    baseRate -= dislikeRate * 10;
+
+    return baseRate;
 }
