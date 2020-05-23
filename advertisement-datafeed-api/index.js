@@ -127,7 +127,7 @@ function validateRequestBody(requestBodys) {
 
         // Check rules for base object
         const rules = [
-            typeof requestBody.id === 'string' && requestBody.id !== '',
+            (typeof requestBody.id === 'string' && requestBody.id !== '') || typeof requestBody.id === 'number',
             (typeof requestBody.title === 'string' || (typeof requestBody.title !== 'undefined' && requestBody.title === null)),
             (typeof requestBody.link === 'string' || (typeof requestBody.link !== 'undefined' && requestBody.link === null)),
             typeof requestBody.files === 'object' && Array.isArray(requestBody.files) && requestBody.files.length >= 1,

@@ -37,7 +37,7 @@ exports.handler = async (event, context, callback) => {
     }
 
     // Get "cid"
-    const cid = typeof requestBody.cid !== 'undefined' && requestBody.cid !== null && requestBody.cid !== '' ? cid : null;
+    const cid = typeof requestBody.cid !== 'undefined' && requestBody.cid !== null && requestBody.cid !== '' ? requestBody.cid : null;
 
     // Get ads by label
     var ads = [];
