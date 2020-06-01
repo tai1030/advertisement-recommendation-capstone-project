@@ -27,7 +27,11 @@ $(document).ready(function () {
     if (typeof queryString.content !== 'undefined') {
         requestData.content = queryString.content;
     }
-
+	var autoplaySpeed = 5000;
+	if (typeof queryString.autoplaySpeed !== 'undefined') {
+		autoplaySpeed = queryString.autoplaySpeed * 1000;
+	}
+	
     // Call API to get the advertisement data
     $.ajax({
         type: 'POST',
@@ -114,7 +118,8 @@ $(document).ready(function () {
             $('#canvas').slick({
                 lazyLoad: 'ondemand', // For "display" tracking
                 autoplay: true,
-                autoplaySpeed: 5000,
+                autoplaySpeed,
+				arrows: false,
             });
         },
     });
